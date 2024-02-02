@@ -183,6 +183,11 @@ SetTritonParameterFromJsonParameter(
     RETURN_IF_ERR(value.AsBool(&bool_value));
     RETURN_IF_ERR(TRITONSERVER_InferenceRequestSetBoolParameter(
         irequest, parameter.c_str(), bool_value));
+  } else if (value.IsNumber()) {
+    double double_value;
+    RETURN_IF_ERR(value.AsDouble(&double_value));
+    RETURN_IF_ERR(TRITONSERVER_InferenceRequestSetDoubleParameter(
+        irequest, parameter.c_str(), double_value));
   } else {
     return TRITONSERVER_ErrorNew(
         TRITONSERVER_ERROR_INVALID_ARG,
@@ -3816,6 +3821,10 @@ HTTPAPIServer::InferRequestClass::FinalizeResponse(
           RETURN_IF_ERR(params_json.AddStringRef(
               name, reinterpret_cast<const char*>(vvalue)));
           break;
+        case TRITONSERVER_PARAMETER_DOUBLE:
+          RETURN_IF_ERR(params_json.AddDouble(
+              name, *(reinterpret_cast<const double*>(vvalue))));
+          break;
         case TRITONSERVER_PARAMETER_BYTES:
           return TRITONSERVER_ErrorNew(
               TRITONSERVER_ERROR_UNSUPPORTED,
@@ -4271,6 +4280,7 @@ HTTPAPIServer::GenerateRequestClass::FinalizeResponse(
         case TRITONSERVER_PARAMETER_BOOL:
         case TRITONSERVER_PARAMETER_INT:
         case TRITONSERVER_PARAMETER_STRING:
+        case TRITONSERVER_PARAMETER_DOUBLE:
           triton_outputs.emplace(
               name, TritonOutput(TritonOutput::Type::PARAMETER, pidx));
           break;
@@ -4443,6 +4453,10 @@ HTTPAPIServer::GenerateRequestClass::ExactMappingOutput(
           RETURN_IF_ERR(generate_response->AddStringRef(
               name, reinterpret_cast<const char*>(vvalue)));
           break;
+        case TRITONSERVER_PARAMETER_DOUBLE:
+          RETURN_IF_ERR(generate_response->AddDouble(
+              name, *(reinterpret_cast<const double*>(vvalue))));
+          break;
         case TRITONSERVER_PARAMETER_BYTES:
           return TRITONSERVER_ErrorNew(
               TRITONSERVER_ERROR_UNSUPPORTED,
@@ -4489,13 +4503,13 @@ HTTPAPIServer::GenerateRequestClass::ExactMappingOutput(
           *generate_response, triton::common::TritonJson::ValueType::ARRAY);
       RETURN_IF_ERR(WriteDataToJson(
           &data_json, cname, datatype, base, byte_size, element_count));
-      if (element_count > 1) {
-        RETURN_IF_ERR(generate_response->Add(cname, std::move(data_json)));
-      } else {
+      if (element_count == 1) {
         // if only 1 element, strip out the array
         triton::common::TritonJson::Value el;
         RETURN_IF_ERR(data_json.At(0, &el));
         RETURN_IF_ERR(generate_response->Add(cname, std::move(el)));
+      } else {
+        RETURN_IF_ERR(generate_response->Add(cname, std::move(data_json)));
       }
       break;
     }
