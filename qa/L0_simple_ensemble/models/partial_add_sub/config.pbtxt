@@ -24,6 +24,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-# FastAPI Application
-fastapi==0.111.1
-openai==1.40.6
+backend: "python"
+max_batch_size: 8
+input [
+  {
+    name: "INPUT0"
+    data_type: TYPE_INT32
+    dims: [ 16 ]
+  }
+]
+input [
+  {
+    name: "INPUT1"
+    data_type: TYPE_INT32
+    dims: [ 16 ]
+  }
+]
+output [
+  {
+    name: "OUTPUT0"
+    data_type: TYPE_INT32
+    dims: [ 16 ]
+  }
+]
+output [
+  {
+    name: "OUTPUT1"
+    data_type: TYPE_INT32
+    dims: [ 16 ]
+  }
+]
+instance_group [{ kind: KIND_CPU }]
